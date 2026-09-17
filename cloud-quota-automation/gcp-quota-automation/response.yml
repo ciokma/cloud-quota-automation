@@ -1,0 +1,180 @@
+containerType: PROJECT
+dimensions:
+- region
+dimensionsInfos:
+- applicableLocations:
+  - asia-east1
+  details:
+    value: '24'
+  dimensions:
+    region: asia-east1
+- applicableLocations:
+  - asia-east2
+  details:
+    value: '24'
+  dimensions:
+    region: asia-east2
+- applicableLocations:
+  - asia-northeast1
+  details:
+    value: '24'
+  dimensions:
+    region: asia-northeast1
+- applicableLocations:
+  - asia-northeast2
+  details:
+    value: '24'
+  dimensions:
+    region: asia-northeast2
+- applicableLocations:
+  - asia-northeast3
+  details:
+    value: '24'
+  dimensions:
+    region: asia-northeast3
+- applicableLocations:
+  - asia-south1
+  details:
+    value: '24'
+  dimensions:
+    region: asia-south1
+- applicableLocations:
+  - asia-southeast1
+  details:
+    value: '24'
+  dimensions:
+    region: asia-southeast1
+- applicableLocations:
+  - asia-southeast2
+  details:
+    value: '24'
+  dimensions:
+    region: asia-southeast2
+- applicableLocations:
+  - australia-southeast1
+  details:
+    value: '24'
+  dimensions:
+    region: australia-southeast1
+- applicableLocations:
+  - europe-north1
+  details:
+    value: '24'
+  dimensions:
+    region: europe-north1
+- applicableLocations:
+  - europe-west1
+  details:
+    value: '24'
+  dimensions:
+    region: europe-west1
+- applicableLocations:
+  - europe-west2
+  details:
+    value: '24'
+  dimensions:
+    region: europe-west2
+- applicableLocations:
+  - europe-west3
+  details:
+    value: '24'
+  dimensions:
+    region: europe-west3
+- applicableLocations:
+  - europe-west4
+  details:
+    value: '24'
+  dimensions:
+    region: europe-west4
+- applicableLocations:
+  - europe-west6
+  details:
+    value: '24'
+  dimensions:
+    region: europe-west6
+- applicableLocations:
+  - northamerica-northeast1
+  details:
+    value: '24'
+  dimensions:
+    region: northamerica-northeast1
+- applicableLocations:
+  - southamerica-east1
+  details:
+    value: '24'
+  dimensions:
+    region: southamerica-east1
+- applicableLocations:
+  - us-central1
+  details:
+    value: '24'
+  dimensions:
+    region: us-central1
+- applicableLocations:
+  - us-east1
+  details:
+    value: '24'
+  dimensions:
+    region: us-east1
+- applicableLocations:
+  - us-east4
+  details:
+    value: '24'
+  dimensions:
+    region: us-east4
+- applicableLocations:
+  - us-west1
+  details:
+    value: '24'
+  dimensions:
+    region: us-west1
+- applicableLocations:
+  - us-west2
+  details:
+    value: '24'
+  dimensions:
+    region: us-west2
+- applicableLocations:
+  - us-west3
+  details:
+    value: '24'
+  dimensions:
+    region: us-west3
+- applicableLocations:
+  - us-west4
+  details:
+    value: '24'
+  dimensions:
+    region: us-west4
+- applicableLocations:
+  - africa-south1
+  - asia-south2
+  - asia-southeast3
+  - australia-southeast2
+  - europe-central2
+  - europe-north2
+  - europe-southwest1
+  - europe-west10
+  - europe-west12
+  - europe-west8
+  - europe-west9
+  - me-central1
+  - me-central2
+  - me-west1
+  - northamerica-northeast2
+  - northamerica-south1
+  - southamerica-west1
+  - us-east5
+  - us-south1
+  details:
+    value: '24'
+isPrecise: true
+metric: compute.googleapis.com/c3_cpus
+metricDisplayName: C3 CPUs
+metricUnit: '1'
+name: projects/129331769615/locations/global/services/compute.googleapis.com/quotaInfos/C3-CPUS-per-project-region
+quotaDisplayName: C3 CPUs
+quotaId: C3-CPUS-per-project-region
+quotaIncreaseEligibility:
+  isEligible: true
+service: compute.googleapis.com

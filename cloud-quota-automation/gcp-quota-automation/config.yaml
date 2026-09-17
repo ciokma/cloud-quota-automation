@@ -1,9 +1,9 @@
 project_id: "angulartest-71992"
 region: "us-east1"
-
+contact_email: maurez89@yahoo.es
 spark:
   workers: 2
-  cpu_per_worker: 16
+  cpu_per_worker: 13
   disk_gb_per_worker: 100
 
 # quotas:
