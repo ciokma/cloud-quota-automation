@@ -1,0 +1,15 @@
+project_id: "angulartest-71992"
+region: "us-east1"
+
+spark:
+  workers: 2
+  cpu_per_worker: 16
+  disk_gb_per_worker: 100
+
+# quotas:
+#   c3_vcpu:
+#     required: calculated
+#   firewall_rules:
+#     required: calculated
+#   disks:
+#     required: calculated
