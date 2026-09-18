@@ -12,3 +12,6 @@ gcloud services enable serviceusage.googleapis.com
 
 ## enable compute
 gcloud services enable compute.googleapis.com --project=angulartest-71992
+
+WSL
+ gcloud auth login --no-launch-browser
