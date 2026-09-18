@@ -73,7 +73,6 @@ def request_quota_increase(client, project_id, region, service, quota_id, target
     clean_quota_id = quota_id.lower().replace("_", "-")
     preference_id = f"inc-{clean_quota_id[:10]}-{target_value}"
     
-    # Se agrega contact_email para evitar el error 400 BadRequestException
     quota_preference = cloudquotas_v1.QuotaPreference(
         service=service,
         quota_id=quota_id,
