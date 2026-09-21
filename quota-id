@@ -1,0 +1,4 @@
+Firewall rules= FIREWALLS-per-project | global
+C3 CPUs= C3-CPUS-per-project-region | region
+Persistent Disk SSD (GB)= SSD-TOTAL-GB-per-project-region | region
+Security policy rules language rules = SECURITY-POLICY-CEVAL-RULES-per-project  | global
