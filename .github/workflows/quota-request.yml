@@ -518,7 +518,6 @@ jobs:
       # ---------------------------------------------------------
       # 12. Show final quota preference
       # ---------------------------------------------------------
-
       - name: Show final quota request status
         shell: bash
         run: |
@@ -528,18 +527,53 @@ jobs:
           echo "Final Quota Request Status"
           echo "=========================================="
 
-
           QUOTA_ID="${{ steps.quota.outputs.quota_id }}"
+          PROJECT_ID="${{ inputs.project_id }}"
+          DIMENSION_TYPE="${{ steps.quota.outputs.dimension_type }}"
 
+          echo "Quota ID: ${QUOTA_ID}"
 
-          gcloud quotas preferences list \
-            --project="${{ inputs.project_id }}" \
-            --billing-project="${BILLING_PROJECT}" \
-            --filter="quotaId=${QUOTA_ID}" \
-            --format="yaml"
+          if [[ "${DIMENSION_TYPE}" == "region" ]]; then
 
+            REGION="${{ inputs.region }}"
+
+            echo "Region: ${REGION}"
+            echo ""
+
+            gcloud quotas preferences list \
+              --project="${PROJECT_ID}" \
+              --billing-project="${BILLING_PROJECT}" \
+              --format=json |
+            jq --arg quota_id "${QUOTA_ID}" \
+              --arg region "${REGION}" '
+              .[]
+              | select(
+                  .quotaId == $quota_id
+                  and .service == "compute.googleapis.com"
+                  and .dimensions.region == $region
+                )
+            '
+
+          else
+
+            echo "Dimension: global"
+            echo ""
+
+            gcloud quotas preferences list \
+              --project="${PROJECT_ID}" \
+              --billing-project="${BILLING_PROJECT}" \
+              --format=json |
+            jq --arg quota_id "${QUOTA_ID}" '
+              .[]
+              | select(
+                  .quotaId == $quota_id
+                  and .service == "compute.googleapis.com"
+                )
+            '
+
+          fi
 
           echo ""
           echo "=========================================="
-          echo "Quota request submitted successfully"
+          echo "Quota preference status retrieved successfully"
           echo "=========================================="
