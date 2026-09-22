@@ -8,6 +8,7 @@ on:
         description: "Google Cloud Project ID"
         required: true
         type: string
+        default: 
 
       quota:
         description: "Quota metric to request"
@@ -23,21 +24,25 @@ on:
         description: "Google Cloud region. Required for regional quotas."
         required: false
         type: string
+        default: "us-east1"
 
       preferred_value:
         description: "Requested quota value"
         required: true
         type: string
+        default: "30"
 
       email:
         description: "Contact email"
         required: true
         type: string
+        default: "maurez89@gmail.com"
 
       justification:
         description: "Business justification for the quota increase"
         required: true
         type: string
+        default: "Requesting quota increase for automation testing purposes."
 
 
 jobs:
