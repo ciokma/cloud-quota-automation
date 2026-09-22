@@ -1,0 +1,13 @@
+                 granted    preferred    reconciling
+
+Initial             50          50          false
+
+Request #1          50         140          true
+
+Approved            140        140          false
+
+Request #2         140         200          true
+
+Approved            200        200          false
+
+Request #3         200         300          true

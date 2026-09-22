@@ -1,0 +1,514 @@
+name: Google Cloud Quota Request
+
+on:
+  workflow_dispatch:
+    inputs:
+
+      project_id:
+        description: "Google Cloud Project ID"
+        required: true
+        type: string
+
+      quota:
+        description: "Quota metric to request"
+        required: true
+        type: choice
+        options:
+          - "Firewall rules"
+          - "C3 CPUs"
+          - "Persistent Disk SSD (GB)"
+          - "Security policy rules language rules"
+
+      region:
+        description: "Google Cloud region. Required for regional quotas."
+        required: false
+        type: string
+
+      preferred_value:
+        description: "Requested quota value"
+        required: true
+        type: string
+
+      email:
+        description: "Contact email"
+        required: true
+        type: string
+
+      justification:
+        description: "Business justification for the quota increase"
+        required: true
+        type: string
+
+
+jobs:
+
+  quota-request:
+
+    name: Request Google Cloud Quota
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    env:
+      SERVICE: compute.googleapis.com
+      BILLING_PROJECT: angulartest-71992
+    # PROJECT_NUMBER must be changed.
+      WIF_PROVIDER: projects/129331769615/locations/global/workloadIdentityPools/github-actions-pool/providers/github
+
+      SERVICE_ACCOUNT: github-quota-requester@angulartest-71992.iam.gserviceaccount.com
+
+
+    steps:
+
+      # ---------------------------------------------------------
+      # 1. Authenticate to Google Cloud
+      # ---------------------------------------------------------
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.SERVICE_ACCOUNT }}
+
+
+      # ---------------------------------------------------------
+      # 2. Install Google Cloud SDK
+      # ---------------------------------------------------------
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+
+
+      # ---------------------------------------------------------
+      # 3. Identify quota
+      # ---------------------------------------------------------
+
+      - name: Configure quota
+        id: quota
+        shell: bash
+        run: |
+
+          case "${{ inputs.quota }}" in
+
+            "Firewall rules")
+              QUOTA_ID="FIREWALLS-per-project"
+              DIMENSION_TYPE="global"
+              ;;
+
+            "C3 CPUs")
+              QUOTA_ID="C3-CPUS-per-project-region"
+              DIMENSION_TYPE="region"
+              ;;
+
+            "Persistent Disk SSD (GB)")
+              QUOTA_ID="SSD-TOTAL-GB-per-project-region"
+              DIMENSION_TYPE="region"
+              ;;
+
+            "Security policy rules language rules")
+              QUOTA_ID="SECURITY-POLICY-CEVAL-RULES-per-project"
+              DIMENSION_TYPE="global"
+              ;;
+
+            *)
+              echo "ERROR: Unsupported quota."
+              exit 1
+              ;;
+
+          esac
+
+          echo "quota_id=${QUOTA_ID}" >> "$GITHUB_OUTPUT"
+          echo "dimension_type=${DIMENSION_TYPE}" >> "$GITHUB_OUTPUT"
+
+          echo "Quota ID: ${QUOTA_ID}"
+          echo "Dimension type: ${DIMENSION_TYPE}"
+
+
+      # ---------------------------------------------------------
+      # 4. Validate inputs
+      # ---------------------------------------------------------
+
+      - name: Validate inputs
+        shell: bash
+        run: |
+
+          echo "Validating inputs..."
+
+          if [[ ! "${{ inputs.preferred_value }}" =~ ^[0-9]+$ ]]; then
+            echo "ERROR: preferred_value must be a positive integer."
+            exit 1
+          fi
+
+          if [[ "${{ inputs.preferred_value }}" -le 0 ]]; then
+            echo "ERROR: preferred_value must be greater than zero."
+            exit 1
+          fi
+
+          if [[ "${{ steps.quota.outputs.dimension_type }}" == "region" ]]; then
+
+            if [[ -z "${{ inputs.region }}" ]]; then
+              echo "ERROR: region is required for regional quotas."
+              exit 1
+            fi
+
+          fi
+
+          echo "Input validation successful."
+
+
+      # ---------------------------------------------------------
+      # 5. Get quota information
+      # ---------------------------------------------------------
+
+      - name: Get quota information
+        shell: bash
+        run: |
+
+          QUOTA_ID="${{ steps.quota.outputs.quota_id }}"
+
+          echo ""
+          echo "=========================================="
+          echo "Quota Information"
+          echo "=========================================="
+
+          gcloud quotas info describe "${QUOTA_ID}" \
+            --service="${SERVICE}" \
+            --project="${{ inputs.project_id }}" \
+            --format="yaml"
+
+
+      # ---------------------------------------------------------
+      # 6. Find existing quota preference
+      # ---------------------------------------------------------
+
+      - name: Find existing quota preference
+        id: preference
+        shell: bash
+        run: |
+
+          QUOTA_ID="${{ steps.quota.outputs.quota_id }}"
+          PROJECT_ID="${{ inputs.project_id }}"
+
+          echo ""
+          echo "=========================================="
+          echo "Searching existing quota preference"
+          echo "=========================================="
+
+          if [[ "${{ steps.quota.outputs.dimension_type }}" == "region" ]]; then
+
+            REGION="${{ inputs.region }}"
+
+            echo "Quota ID: ${QUOTA_ID}"
+            echo "Region: ${REGION}"
+
+            PREFERENCE_ID=$(
+              gcloud quotas preferences list \
+                --project="${PROJECT_ID}" \
+                --billing-project="${BILLING_PROJECT}" \
+                --format="value(name.basename())" \
+                --filter="quotaId=${QUOTA_ID} AND dimensions.region=${REGION}" \
+                --limit=1
+            )
+
+          else
+
+            echo "Quota ID: ${QUOTA_ID}"
+            echo "Dimension: global"
+
+            PREFERENCE_ID=$(
+              gcloud quotas preferences list \
+                --project="${PROJECT_ID}" \
+                --billing-project="${BILLING_PROJECT}" \
+                --format="value(name.basename())" \
+                --filter="quotaId=${QUOTA_ID}" \
+                --limit=1
+            )
+
+          fi
+
+
+          if [[ -n "${PREFERENCE_ID}" ]]; then
+
+            echo "Existing preference found:"
+            echo "${PREFERENCE_ID}"
+
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "preference_id=${PREFERENCE_ID}" >> "$GITHUB_OUTPUT"
+
+          else
+
+            echo "No existing preference found."
+
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+
+          fi
+
+
+      # ---------------------------------------------------------
+      # 7. Describe existing preference
+      # ---------------------------------------------------------
+
+      - name: Get existing preference status
+        if: steps.preference.outputs.exists == 'true'
+        id: status
+        shell: bash
+        run: |
+
+          PREFERENCE_ID="${{ steps.preference.outputs.preference_id }}"
+          PROJECT_ID="${{ inputs.project_id }}"
+
+          echo ""
+          echo "=========================================="
+          echo "Existing Quota Preference"
+          echo "=========================================="
+
+          gcloud quotas preferences describe "${PREFERENCE_ID}" \
+            --project="${PROJECT_ID}" \
+            --billing-project="${BILLING_PROJECT}" \
+            --format="yaml"
+
+
+          echo ""
+          echo "Reading preference status..."
+
+
+          PREFERENCE_JSON=$(
+            gcloud quotas preferences describe "${PREFERENCE_ID}" \
+              --project="${PROJECT_ID}" \
+              --billing-project="${BILLING_PROJECT}" \
+              --format="json"
+          )
+
+
+          GRANTED_VALUE=$(echo "${PREFERENCE_JSON}" | jq -r '.quotaConfig.grantedValue // 0')
+
+          PREFERRED_VALUE=$(echo "${PREFERENCE_JSON}" | jq -r '.quotaConfig.preferredValue // 0')
+
+          RECONCILING=$(echo "${PREFERENCE_JSON}" | jq -r '.reconciling // false')
+
+          STATE_DETAIL=$(echo "${PREFERENCE_JSON}" | jq -r '.stateDetail // ""')
+
+
+          echo "granted_value=${GRANTED_VALUE}" >> "$GITHUB_OUTPUT"
+
+          echo "preferred_value=${PREFERRED_VALUE}" >> "$GITHUB_OUTPUT"
+
+          echo "reconciling=${RECONCILING}" >> "$GITHUB_OUTPUT"
+
+          echo "state_detail=${STATE_DETAIL}" >> "$GITHUB_OUTPUT"
+
+
+          echo ""
+          echo "Granted value:    ${GRANTED_VALUE}"
+          echo "Preferred value:  ${PREFERRED_VALUE}"
+          echo "Reconciling:      ${RECONCILING}"
+
+          if [[ -n "${STATE_DETAIL}" ]]; then
+            echo "State detail:     ${STATE_DETAIL}"
+          fi
+
+
+      # ---------------------------------------------------------
+      # 8. CREATE new quota preference
+      # ---------------------------------------------------------
+
+      - name: Create quota request
+        if: steps.preference.outputs.exists == 'false'
+        shell: bash
+        run: |
+
+          QUOTA_ID="${{ steps.quota.outputs.quota_id }}"
+
+          echo ""
+          echo "=========================================="
+          echo "Creating quota request"
+          echo "=========================================="
+
+          CMD=(
+            gcloud quotas preferences create
+            --project="${{ inputs.project_id }}"
+            --service="${SERVICE}"
+            --quota-id="${QUOTA_ID}"
+            --preferred-value="${{ inputs.preferred_value }}"
+            --billing-project="${BILLING_PROJECT}"
+            --email="${{ inputs.email }}"
+            --justification="${{ inputs.justification }}"
+          )
+
+
+          if [[ "${{ steps.quota.outputs.dimension_type }}" == "region" ]]; then
+
+            CMD+=(
+              --dimensions="region=${{ inputs.region }}"
+            )
+
+          fi
+
+
+          echo "Requested value: ${{ inputs.preferred_value }}"
+
+          "${CMD[@]}"
+
+
+      # ---------------------------------------------------------
+      # 9. STOP if existing request is still being evaluated
+      # ---------------------------------------------------------
+
+      - name: Stop because request is still reconciling
+        if: |
+          steps.preference.outputs.exists == 'true' &&
+          steps.status.outputs.reconciling == 'true'
+        shell: bash
+        run: |
+
+          echo ""
+          echo "=========================================="
+          echo "QUOTA REQUEST STILL IN PROGRESS"
+          echo "=========================================="
+
+          echo "An existing quota request is still being evaluated."
+
+          echo ""
+          echo "Current granted value:"
+          echo "${{ steps.status.outputs.granted_value }}"
+
+          echo ""
+          echo "Current requested value:"
+          echo "${{ steps.status.outputs.preferred_value }}"
+
+          echo ""
+          echo "Requested by this workflow:"
+          echo "${{ inputs.preferred_value }}"
+
+          echo ""
+          echo "Please wait until Google Cloud finishes"
+          echo "evaluating the current quota request."
+
+          echo ""
+
+          exit 1
+
+
+      # ---------------------------------------------------------
+      # 10. Validate requested value against granted value
+      # ---------------------------------------------------------
+
+      - name: Validate requested increase
+        if: |
+          steps.preference.outputs.exists == 'true' &&
+          steps.status.outputs.reconciling != 'true'
+        shell: bash
+        run: |
+
+          GRANTED="${{ steps.status.outputs.granted_value }}"
+          REQUESTED="${{ inputs.preferred_value }}"
+
+          echo ""
+          echo "=========================================="
+          echo "Quota Increase Validation"
+          echo "=========================================="
+
+          echo "Current granted value: ${GRANTED}"
+          echo "Requested value:       ${REQUESTED}"
+
+
+          if (( REQUESTED <= GRANTED )); then
+
+            echo ""
+            echo "ERROR:"
+            echo "The requested value (${REQUESTED}) is not greater"
+            echo "than the current granted value (${GRANTED})."
+
+            echo ""
+            echo "No quota increase will be submitted."
+
+            exit 1
+
+          fi
+
+
+          echo ""
+          echo "Requested value is greater than current quota."
+          echo "Proceeding with update."
+
+
+      # ---------------------------------------------------------
+      # 11. UPDATE existing quota preference
+      # ---------------------------------------------------------
+
+      - name: Update quota request
+        if: |
+          steps.preference.outputs.exists == 'true' &&
+          steps.status.outputs.reconciling != 'true'
+        shell: bash
+        run: |
+
+          PREFERENCE_ID="${{ steps.preference.outputs.preference_id }}"
+
+          QUOTA_ID="${{ steps.quota.outputs.quota_id }}"
+
+          echo ""
+          echo "=========================================="
+          echo "Updating quota preference"
+          echo "=========================================="
+
+          echo "Preference ID: ${PREFERENCE_ID}"
+          echo "Quota ID:      ${QUOTA_ID}"
+          echo "New value:     ${{ inputs.preferred_value }}"
+
+
+          CMD=(
+            gcloud quotas preferences update "${PREFERENCE_ID}"
+            --project="${{ inputs.project_id }}"
+            --service="${SERVICE}"
+            --quota-id="${QUOTA_ID}"
+            --preferred-value="${{ inputs.preferred_value }}"
+            --billing-project="${BILLING_PROJECT}"
+            --email="${{ inputs.email }}"
+            --justification="${{ inputs.justification }}"
+          )
+
+
+          if [[ "${{ steps.quota.outputs.dimension_type }}" == "region" ]]; then
+
+            CMD+=(
+              --dimensions="region=${{ inputs.region }}"
+            )
+
+          fi
+
+
+          "${CMD[@]}"
+
+
+      # ---------------------------------------------------------
+      # 12. Show final quota preference
+      # ---------------------------------------------------------
+
+      - name: Show final quota request status
+        shell: bash
+        run: |
+
+          echo ""
+          echo "=========================================="
+          echo "Final Quota Request Status"
+          echo "=========================================="
+
+
+          QUOTA_ID="${{ steps.quota.outputs.quota_id }}"
+
+
+          gcloud quotas preferences list \
+            --project="${{ inputs.project_id }}" \
+            --billing-project="${BILLING_PROJECT}" \
+            --filter="quotaId=${QUOTA_ID}" \
+            --format="yaml"
+
+
+          echo ""
+          echo "=========================================="
+          echo "Quota request submitted successfully"
+          echo "=========================================="

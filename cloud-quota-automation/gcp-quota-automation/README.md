@@ -84,3 +84,22 @@ quotaConfig:
 quotaId: C3-CPUS-per-project-region
 service: compute.googleapis.com
 updateTime: '2026-09-17T21:32:14.907083234Z'
+
+## enable quota adjuster
+https://docs.cloud.google.com/capacity-planner/docs/enable-quota-adjuster
+Preview
+
+This product is subject to the "Pre-GA Offerings Terms" in the General Service Terms section of the Service Specific Terms. Pre-GA products are available "as is" and might have limited support.
+
+gcloud projects add-iam-policy-binding angulartest-71992 `
+  --member="user:maurez89@gmail.com" `
+  --role="roles/capacityplanner.viewer"
+
+  gcloud projects add-iam-policy-binding angulartest-71992 `
+  --member="user:maurez89@gmail.com" `
+  --role="roles/cloudquotas.admin"
+
+
+  gcloud projects add-iam-policy-binding angulartest-71992 `
+  --member="user:maurez89@gmail.com" `
+  --role="roles/cloudquotas.admin"
