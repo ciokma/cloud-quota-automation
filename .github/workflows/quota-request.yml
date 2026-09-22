@@ -80,7 +80,8 @@ jobs:
 
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v3
-
+        with:
+          version: '585.0.0'
 
       # ---------------------------------------------------------
       # 3. Identify quota
