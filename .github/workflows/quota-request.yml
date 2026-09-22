@@ -187,7 +187,6 @@ jobs:
       # ---------------------------------------------------------
       # 6. Find existing quota preference
       # ---------------------------------------------------------
-
       - name: Find existing quota preference
         id: preference
         shell: bash
@@ -195,47 +194,69 @@ jobs:
 
           QUOTA_ID="${{ steps.quota.outputs.quota_id }}"
           PROJECT_ID="${{ inputs.project_id }}"
+          DIMENSION_TYPE="${{ steps.quota.outputs.dimension_type }}"
 
           echo ""
           echo "=========================================="
           echo "Searching existing quota preference"
           echo "=========================================="
 
-          if [[ "${{ steps.quota.outputs.dimension_type }}" == "region" ]]; then
+          echo "Quota ID: ${QUOTA_ID}"
+          echo "Dimension type: ${DIMENSION_TYPE}"
+
+          if [[ "${DIMENSION_TYPE}" == "region" ]]; then
 
             REGION="${{ inputs.region }}"
 
-            echo "Quota ID: ${QUOTA_ID}"
             echo "Region: ${REGION}"
 
             PREFERENCE_ID=$(
               gcloud quotas preferences list \
                 --project="${PROJECT_ID}" \
                 --billing-project="${BILLING_PROJECT}" \
-                --format="value(name.basename())" \
-                --filter="quotaId=${QUOTA_ID} AND dimensions.region=${REGION}" \
-                --limit=1
+                --format=json |
+              jq -r --arg quota_id "${QUOTA_ID}" \
+                    --arg region "${REGION}" '
+                .[]
+                | select(
+                    .quotaId == $quota_id
+                    and .service == "compute.googleapis.com"
+                    and .dimensions.region == $region
+                  )
+                | .name
+                | split("/")
+                | last
+              ' |
+              head -n 1
             )
 
           else
 
-            echo "Quota ID: ${QUOTA_ID}"
             echo "Dimension: global"
 
             PREFERENCE_ID=$(
               gcloud quotas preferences list \
                 --project="${PROJECT_ID}" \
                 --billing-project="${BILLING_PROJECT}" \
-                --format="value(name.basename())" \
-                --filter="quotaId=${QUOTA_ID}" \
-                --limit=1
+                --format=json |
+              jq -r --arg quota_id "${QUOTA_ID}" '
+                .[]
+                | select(
+                    .quotaId == $quota_id
+                    and .service == "compute.googleapis.com"
+                  )
+                | .name
+                | split("/")
+                | last
+              ' |
+              head -n 1
             )
 
           fi
 
-
           if [[ -n "${PREFERENCE_ID}" ]]; then
 
+            echo ""
             echo "Existing preference found:"
             echo "${PREFERENCE_ID}"
 
@@ -244,6 +265,7 @@ jobs:
 
           else
 
+            echo ""
             echo "No existing preference found."
 
             echo "exists=false" >> "$GITHUB_OUTPUT"
