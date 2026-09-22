@@ -147,6 +147,7 @@ GRANTED_VALUE=""
 CURRENT_PREFERRED_VALUE=""
 RECONCILING=""
 STATE_DETAIL=""
+CURRENT_QUOTA_VALUE=""
 
 find_preference() {
   PREFERENCE_ID=""
@@ -186,7 +187,57 @@ find_preference() {
 
   done <<< "$preferences"
 }
+get_current_quota() {
+  CURRENT_QUOTA_VALUE=""
 
+  if [[ "$DIMENSION_TYPE" == "region" ]]; then
+
+    CURRENT_QUOTA_VALUE="$(
+      gcloud quotas info describe "$QUOTA_ID" \
+        --service="$SERVICE" \
+        --project="$PROJECT_ID" \
+        --billing-project="$BILLING_PROJECT" \
+        --format="yaml(dimensionsInfos)"
+    )"
+
+    CURRENT_QUOTA_VALUE="$(
+      printf '%s\n' "$CURRENT_QUOTA_VALUE" |
+      awk -v region="$REGION" '
+        /applicableLocations:/ {
+          in_locations=1
+          found_region=0
+          next
+        }
+
+        in_locations && $0 ~ "- " region "$" {
+          found_region=1
+          next
+        }
+
+        found_region && /value:/ {
+          gsub(/'\''/, "", $2)
+          print $2
+          exit
+        }
+      '
+    )"
+
+  else
+
+    CURRENT_QUOTA_VALUE="$(
+      gcloud quotas info describe "$QUOTA_ID" \
+        --service="$SERVICE" \
+        --project="$PROJECT_ID" \
+        --billing-project="$BILLING_PROJECT" \
+        --format="value(dimensionsInfos[].details.value)"
+    )"
+
+  fi
+
+  if [[ -z "$CURRENT_QUOTA_VALUE" ]]; then
+    error "Unable to determine current quota value for $QUOTA_ID in dimension $DIMENSION_TYPE."
+  fi
+}
 get_preference_details() {
   GRANTED_VALUE="$(
     gcloud quotas preferences describe "$PREFERENCE_ID" \
@@ -291,6 +342,23 @@ show_plan() {
   echo
 }
 
+log "Retrieving current quota..."
+
+get_current_quota
+
+echo
+echo "========================================"
+echo "CURRENT QUOTA"
+echo "========================================"
+echo "Quota ID:          $QUOTA_ID"
+echo "Current quota:     $CURRENT_QUOTA_VALUE"
+
+if [[ "$DIMENSION_TYPE" == "region" ]]; then
+  echo "Region:            $REGION"
+fi
+
+echo "========================================"
+echo
 log "Searching for existing quota preference..."
 
 find_preference

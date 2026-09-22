@@ -81,3 +81,20 @@ Dry-run:            true
 ========================================
 
 [INFO] DRY-RUN: no changes were made to Google Cloud.
+
+# regional
+./gcp-quota-manager.sh \
+  --project-id angulartest-71992 \
+  --quota-id C3-CPUS-per-project-region \
+  --dimension-type region \
+  --region us-east1 \
+  --preferred-value 32 \
+  --dry-run
+
+# global
+./gcp-quota-manager.sh \
+  --project-id angulartest-71992 \
+  --quota-id FIREWALLS-per-project \
+  --dimension-type global \
+  --preferred-value 132 \
+  --dry-run
