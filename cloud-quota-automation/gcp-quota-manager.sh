@@ -9,8 +9,8 @@ QUOTA_ID=""
 DIMENSION_TYPE=""
 REGION=""
 PREFERRED_VALUE=""
-CONTACT_EMAIL=""
-JUSTIFY_REASON=""
+EMAIL=""
+JUSTIFICATION=""
 DRY_RUN=false
 
 usage() {
@@ -23,8 +23,8 @@ Regional quota:
     --quota-id QUOTA_ID \\
     --dimension-type region \\
     --region REGION \\
-    --contact-email CONTACT_EMAIL \\
-    --justify-reason "Reason for quota increase" \\
+    --email EMAIL \\
+    --justification "Reason for quota increase" \\
     --preferred-value VALUE [--dry-run]
 
 Global quota:
@@ -32,8 +32,8 @@ Global quota:
     --project-id PROJECT_ID \\
     --quota-id QUOTA_ID \\
     --dimension-type global \\
-    --contact-email CONTACT_EMAIL \\
-    --justify-reason "Reason for quota increase" \\
+    --email EMAIL \\
+    --justification "Reason for quota increase" \\
     --preferred-value VALUE [--dry-run]
 
 Options:
@@ -44,8 +44,8 @@ Options:
   --dimension-type   region | global
   --region           Region, required when dimension-type=region
   --preferred-value  Requested quota value
-  --contact-email    Contact email for quota request
-  --justify-reason   Justification for the quota increase request
+  --email    Contact email for quota request
+  --justification   Justification for the quota increase request
   --dry-run          Show what would happen without changing GCP
   --help             Show this help
 
@@ -56,8 +56,8 @@ Examples:
     --quota-id C3-CPUS-per-project-region \\
     --dimension-type region \\
     --region us-east1 \\
-    --contact-email contact@mycompany.com \\
-    --justify-reason "Need more CPUs for our Spark cluster" \\
+    --email contact@mycompany.com \\
+    --justification "Need more CPUs for our Spark cluster" \\
     --preferred-value 140
 
   $0 \\
@@ -65,8 +65,8 @@ Examples:
     --quota-id C3-CPUS-per-project-region \\
     --dimension-type region \\
     --region us-east1 \\
-    --contact-email contact@mycompany.com \\
-    --justify-reason "Need more CPUs for our Spark cluster" \\
+    --email contact@mycompany.com \\
+    --justification "Need more CPUs for our Spark cluster" \\
     --preferred-value 140 \\
     --dry-run
 EOF
@@ -111,12 +111,12 @@ while [[ $# -gt 0 ]]; do
       PREFERRED_VALUE="$2"
       shift 2
       ;;
-    --contact-email)
-      CONTACT_EMAIL="$2"
+    --email)
+      EMAIL="$2"
       shift 2
       ;;
-    --justify-reason)
-      JUSTIFY_REASON="$2"
+    --justification)
+      JUSTIFICATION="$2"
       shift 2
       ;;
     --dry-run)
@@ -137,6 +137,8 @@ done
 [[ -n "$QUOTA_ID" ]] || error "--quota-id is required"
 [[ -n "$DIMENSION_TYPE" ]] || error "--dimension-type is required"
 [[ -n "$PREFERRED_VALUE" ]] || error "--preferred-value is required"
+[[ -n "$EMAIL" ]] || error "--email is required"
+[[ -n "$JUSTIFICATION" ]] || error "--justification is required"
 
 if [[ "$DIMENSION_TYPE" != "region" && "$DIMENSION_TYPE" != "global" ]]; then
   error "--dimension-type must be 'region' or 'global'"
@@ -301,16 +303,16 @@ create_preference() {
       --quota-id="$QUOTA_ID" \
       --preferred-value="$PREFERRED_VALUE" \
       --dimensions="region=$REGION" \
-      --contact-email="${CONTACT_EMAIL}" \
-      --justify-reason="${JUSTIFY_REASON}"
+      --email="${EMAIL}" \
+      --justification="${justification_REASON}"
   else
     gcloud quotas preferences create \
       --project="$PROJECT_ID" \
       --billing-project="$BILLING_PROJECT" \
       --service="$SERVICE" \
       --quota-id="$QUOTA_ID" \
-      --contact-email="${CONTACT_EMAIL}" \
-      --justify-reason="${JUSTIFY_REASON}" \
+      --email="${EMAIL}" \
+      --justification="${justification_REASON}" \
       --preferred-value="$PREFERRED_VALUE"
 
   fi

@@ -135,8 +135,8 @@ jobs:
             --quota-id "${{ steps.quota.outputs.quota_id }}"
             --dimension-type "${{ steps.quota.outputs.dimension_type }}"
             --preferred-value "${{ inputs.preferred_value }}"
-            --contact-email "${{ inputs.contact_email }}"
-            --justify-reason "${{ inputs.justify_reason }}"
+            --email "${{ inputs.contact_email }}"
+            --justification "${{ inputs.justify_reason }}"
           )
 
           if [[ "${{ steps.quota.outputs.dimension_type }}" == "region" ]]; then
