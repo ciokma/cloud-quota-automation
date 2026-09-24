@@ -326,12 +326,20 @@ update_preference() {
       --project="$PROJECT_ID" \
       --billing-project="$BILLING_PROJECT" \
       --preferred-value="$PREFERRED_VALUE" \
-      --dimensions="region=$REGION"
+      --dimensions="region=$REGION" \
+      --service="$SERVICE" \
+      --quota-id="$QUOTA_ID" \
+      --email="${EMAIL}" \
+      --justification="${JUSTIFICATION}" \
   else
     gcloud quotas preferences update "$PREFERENCE_ID" \
       --project="$PROJECT_ID" \
       --billing-project="$BILLING_PROJECT" \
-      --preferred-value="$PREFERRED_VALUE"
+      --preferred-value="$PREFERRED_VALUE" \
+      --service="$SERVICE" \
+      --quota-id="$QUOTA_ID" \
+      --email="${EMAIL}" \
+      --justification="${JUSTIFICATION}" \
   fi
 }
 
