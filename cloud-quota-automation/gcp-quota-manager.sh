@@ -304,7 +304,7 @@ create_preference() {
       --preferred-value="$PREFERRED_VALUE" \
       --dimensions="region=$REGION" \
       --email="${EMAIL}" \
-      --justification="${justification_REASON}"
+      --justification="${JUSTIFICATION}"
   else
     gcloud quotas preferences create \
       --project="$PROJECT_ID" \
