@@ -330,7 +330,7 @@ update_preference() {
       --service="$SERVICE" \
       --quota-id="$QUOTA_ID" \
       --email="${EMAIL}" \
-      --justification="${JUSTIFICATION}" \
+      --justification="${JUSTIFICATION}"
   else
     gcloud quotas preferences update "$PREFERENCE_ID" \
       --project="$PROJECT_ID" \
@@ -339,7 +339,7 @@ update_preference() {
       --service="$SERVICE" \
       --quota-id="$QUOTA_ID" \
       --email="${EMAIL}" \
-      --justification="${JUSTIFICATION}" \
+      --justification="${JUSTIFICATION}"
   fi
 }
 
