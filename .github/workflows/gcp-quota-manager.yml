@@ -1,0 +1,139 @@
+name: GCP Quota Manager
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: "GCP Project ID"
+        required: true
+        type: string
+        default: "angulartest-71992"
+
+      quota:
+        description: "Quota metric to request"
+        required: true
+        type: choice
+        options:
+          - "Firewall rules"
+          - "C3 CPUs"
+          - "Persistent Disk SSD (GB)"
+          - "Security policy rules language rules"
+
+      region:
+        description: "Region (only required for regional quota)"
+        required: false
+        type: string
+        default: "us-east1"
+
+      preferred_value:
+        description: "Preferred quota value"
+        required: true
+        type: string
+        default: "32"
+
+      dry_run:
+        description: "Run in dry-run mode"
+        required: true
+        type: boolean
+        default: true
+
+env:
+  WIF_PROVIDER: projects/129331769615/locations/global/workloadIdentityPools/github-actions-pool/providers/github
+  SERVICE_ACCOUNT: github-quota-requester@angulartest-71992.iam.gserviceaccount.com
+
+jobs:
+  manage-quota:
+    name: Manage GCP quota
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ inputs.project_id }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.SERVICE_ACCOUNT }}
+
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          version: ">= 416.0.0"
+
+      - name: Verify authentication
+        run: |
+          gcloud auth list
+          gcloud config set project "${{ inputs.project_id }}"
+
+      - name: Configure quota
+        id: quota
+        shell: bash
+        run: |
+          case "${{ inputs.quota }}" in
+
+            "Firewall rules")
+              QUOTA_ID="FIREWALLS-per-project"
+              DIMENSION_TYPE="global"
+              ;;
+
+            "C3 CPUs")
+              QUOTA_ID="C3-CPUS-per-project-region"
+              DIMENSION_TYPE="region"
+              ;;
+
+            "Persistent Disk SSD (GB)")
+              QUOTA_ID="SSD-TOTAL-GB-per-project-region"
+              DIMENSION_TYPE="region"
+              ;;
+
+            "Security policy rules language rules")
+              QUOTA_ID="SECURITY-POLICY-CEVAL-RULES-per-project"
+              DIMENSION_TYPE="global"
+              ;;
+
+            *)
+              echo "ERROR: Unsupported quota."
+              exit 1
+              ;;
+
+          esac
+
+          echo "quota_id=${QUOTA_ID}" >> "$GITHUB_OUTPUT"
+          echo "dimension_type=${DIMENSION_TYPE}" >> "$GITHUB_OUTPUT"
+
+          echo "Quota ID: ${QUOTA_ID}"
+          echo "Dimension type: ${DIMENSION_TYPE}"
+
+      - name: Make script executable
+        run: |
+          chmod +x ./cloud-quota-automation/gcp-quota-manager.sh
+
+      - name: Run quota manager
+        shell: bash
+        run: |
+          ARGS=(
+            --project-id "${{ inputs.project_id }}"
+            --quota-id "${{ steps.quota.outputs.quota_id }}"
+            --dimension-type "${{ steps.quota.outputs.dimension_type }}"
+            --preferred-value "${{ inputs.preferred_value }}"
+          )
+
+          if [[ "${{ steps.quota.outputs.dimension_type }}" == "region" ]]; then
+            ARGS+=(
+              --region "${{ inputs.region }}"
+            )
+          fi
+
+          if [[ "${{ inputs.dry_run }}" == "true" ]]; then
+            ARGS+=(
+              --dry-run
+            )
+          fi
+
+          ./cloud-quota-automation/gcp-quota-manager.sh "${ARGS[@]}"
