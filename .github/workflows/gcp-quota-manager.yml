@@ -30,12 +30,25 @@ on:
         required: true
         type: string
         default: "32"
+      contact_email:
+        description: "Contact email for quota request"
+        required: true
+        type: string
+        default: "contact@mycompany.com"
+
+      justify_reason:
+        description: "Business justification for the quota increase"
+        required: true
+        type: string
+        default: "Requesting quota increase for automation testing purposes."
 
       dry_run:
         description: "Run in dry-run mode"
         required: true
         type: boolean
         default: true
+
+      
 
 env:
   WIF_PROVIDER: projects/129331769615/locations/global/workloadIdentityPools/github-actions-pool/providers/github
@@ -122,6 +135,8 @@ jobs:
             --quota-id "${{ steps.quota.outputs.quota_id }}"
             --dimension-type "${{ steps.quota.outputs.dimension_type }}"
             --preferred-value "${{ inputs.preferred_value }}"
+            --contact-email "${{ inputs.contact_email }}"
+            --justify-reason "${{ inputs.justify_reason }}"
           )
 
           if [[ "${{ steps.quota.outputs.dimension_type }}" == "region" ]]; then

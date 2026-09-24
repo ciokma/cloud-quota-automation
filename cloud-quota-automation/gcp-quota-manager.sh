@@ -9,6 +9,8 @@ QUOTA_ID=""
 DIMENSION_TYPE=""
 REGION=""
 PREFERRED_VALUE=""
+CONTACT_EMAIL=""
+JUSTIFY_REASON=""
 DRY_RUN=false
 
 usage() {
@@ -21,6 +23,8 @@ Regional quota:
     --quota-id QUOTA_ID \\
     --dimension-type region \\
     --region REGION \\
+    --contact-email CONTACT_EMAIL \\
+    --justify-reason "Reason for quota increase" \\
     --preferred-value VALUE [--dry-run]
 
 Global quota:
@@ -28,6 +32,8 @@ Global quota:
     --project-id PROJECT_ID \\
     --quota-id QUOTA_ID \\
     --dimension-type global \\
+    --contact-email CONTACT_EMAIL \\
+    --justify-reason "Reason for quota increase" \\
     --preferred-value VALUE [--dry-run]
 
 Options:
@@ -38,6 +44,8 @@ Options:
   --dimension-type   region | global
   --region           Region, required when dimension-type=region
   --preferred-value  Requested quota value
+  --contact-email    Contact email for quota request
+  --justify-reason   Justification for the quota increase request
   --dry-run          Show what would happen without changing GCP
   --help             Show this help
 
@@ -48,6 +56,8 @@ Examples:
     --quota-id C3-CPUS-per-project-region \\
     --dimension-type region \\
     --region us-east1 \\
+    --contact-email contact@mycompany.com \\
+    --justify-reason "Need more CPUs for our Spark cluster" \\
     --preferred-value 140
 
   $0 \\
@@ -55,6 +65,8 @@ Examples:
     --quota-id C3-CPUS-per-project-region \\
     --dimension-type region \\
     --region us-east1 \\
+    --contact-email contact@mycompany.com \\
+    --justify-reason "Need more CPUs for our Spark cluster" \\
     --preferred-value 140 \\
     --dry-run
 EOF
@@ -97,6 +109,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --preferred-value)
       PREFERRED_VALUE="$2"
+      shift 2
+      ;;
+    --contact-email)
+      CONTACT_EMAIL="$2"
+      shift 2
+      ;;
+    --justify-reason)
+      JUSTIFY_REASON="$2"
       shift 2
       ;;
     --dry-run)
@@ -280,14 +300,19 @@ create_preference() {
       --service="$SERVICE" \
       --quota-id="$QUOTA_ID" \
       --preferred-value="$PREFERRED_VALUE" \
-      --dimensions="region=$REGION"
+      --dimensions="region=$REGION" \
+      --contact-email="${CONTACT_EMAIL}" \
+      --justify-reason="${JUSTIFY_REASON}"
   else
     gcloud quotas preferences create \
       --project="$PROJECT_ID" \
       --billing-project="$BILLING_PROJECT" \
       --service="$SERVICE" \
       --quota-id="$QUOTA_ID" \
+      --contact-email="${CONTACT_EMAIL}" \
+      --justify-reason="${JUSTIFY_REASON}" \
       --preferred-value="$PREFERRED_VALUE"
+
   fi
 }
 
