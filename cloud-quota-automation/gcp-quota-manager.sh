@@ -312,7 +312,7 @@ create_preference() {
       --service="$SERVICE" \
       --quota-id="$QUOTA_ID" \
       --email="${EMAIL}" \
-      --justification="${justification_REASON}" \
+      --justification="${JUSTIFICATION}" \
       --preferred-value="$PREFERRED_VALUE"
 
   fi
